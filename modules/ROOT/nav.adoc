@@ -1,0 +1,6 @@
+* xref:index.adoc[Home]
+* xref:about.adoc[About]
+* Posts
+** xref:posts/a-blog-the-fun-way.adoc[A blog, the fun way]
+** xref:posts/git-filter-repo-git-filter-branch-for-simpletons-like-me.adoc[git filter-repo: A git filter-branch replacement for simpletons like me]
+** xref:posts/git-filter-repo-text-that-never-was.adoc[git filter-repo: The text that never was]

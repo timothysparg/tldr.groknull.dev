@@ -1,0 +1,7 @@
+
+[settings]
+lockfile = true
+
+[tools]
+node = "lts"
+"npm:antora" = "latest"

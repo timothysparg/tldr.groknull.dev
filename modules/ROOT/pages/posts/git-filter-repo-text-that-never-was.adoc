@@ -1,0 +1,27 @@
+= git filter-repo: The text that never was
+:page-role: article
+:page-date: 2020-08-15
+:page-tags: git,filter-repo,fishshell
+:page-draft: true
+:page-description: Use git filter-repo to strip a repeated password snippet.
+
+:icons: font
+
+*_tl;dr_*: _Some text just doesn't belong in a repository_
+
+Here's a pithy bash one-liner to remove it:
+
+[source,bash]
+----
+git filter-repo --replace-text=<(echo "P@ssw0rd==><Sigh stop committing you password>")
+----
+
+Or if you're one of those flounders that use https://fishshell.com/[fish]:
+
+[source,bash]
+----
+git filter-repo --replace-text=(echo "P@ssw0rd==><Sigh stop committing you password>"|psub)
+----
+
+
+I am one of those flounders and `psub` always catches me out, because I only ever need to use it just when I've forgotten about it.

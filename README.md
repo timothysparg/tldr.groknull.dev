@@ -1,4 +1,4 @@
-And perhaps indicatively I need to list the Hugo commands here because I seem to forget them _every_ time I want to write a new post...
+Antora blog notes:
 
-- hugo new posts/amazing-title.adoc
-- hugo server -D
+- Add a new post under `modules/ROOT/pages/posts/` with `:page-role: article` and `:page-date: YYYY-MM-DD`
+- Run the site locally with `npm install` then `npm run build` (output to `public/`)

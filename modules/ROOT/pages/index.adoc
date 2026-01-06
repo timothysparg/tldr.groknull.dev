@@ -1,0 +1,4 @@
+= TL;DR
+:page-layout: home
+:page-version: main
+:description: Home

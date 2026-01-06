@@ -1,0 +1,62 @@
+= git filter-repo: A git filter-branch replacement for simpletons like me
+:page-role: article
+:page-date: 2020-06-21
+:page-tags: git,filter-repo,filter-branch
+:page-description: A simple walkthrough of git filter-repo tasks and why it beats filter-branch.
+:icons: font
+
+Also if you're not a simpleton it has the benefit of being significantly faster, but I digress. 
+
+*_tl;dr_*:  _git filter-repo --replace-text <(echo "filter-branch==>filter-repo")_
+
+I had the _enviable_ task of migrating some code out from a monolithic repository recently.
+
+I say enviable with emphasis because I've done this in the past using https://git-scm.com/docs/git-filter-branch[git filter-branch] and it has always been a slog. +
+Partly because I found the tool difficult to understand with its plethora of options that always felt like a trip down the rabbit hole, but mostly because I would look at the resulting repository and realise that I had forgot something and it would take an entire eternity for `filter-branch` to run again.
+
+I ran the following series of commands against the https://github.com/apache/tomcat[Tomcat repository] if you would like to play along.
+
+To only keep the `java` and `test` folders and discard the others we execute
+[source,shell]
+----
+$> git filter-repo \
+            --path java \
+            --path test <1>
+----
+<1> `--path` can be specified multiple times
+
+All repositories need a `foo` right? Lets add our own with the following set of commands
+[source,shell]
+----
+$> git filter-repo \
+            --path-rename test/:foo/ \
+            --path-rename java/:foo/ <1>
+
+----
+<1> Note how here we are combining the `test` and `java` directories under `foo`. +
+Care should be taken whilst doing this as if the same file exists in both directories, then the one from the `test` directory will be overridden with the file from the `java` directory. 
+
+And now in a flight of fancy I no longer want jars in my repo
+
+[source,shell]
+----
+$> git filter-repo \
+            --path-glob "*.jar" \
+            --invert-paths
+----
+
+And as final trick we're going to replace all occurences of apache with BSD.
+
+[source,shell]
+----
+$> git filter-repo \
+            --replace-text <(echo "apache==>ehcapa") <1>
+----
+<1> This should really be read in from a file, but this is much more illustrative.
+
+Pithy one-liners aside there are some solid reasons to use filter-repo over filter-branch
+
+* It's fast - In a trivial example I found `filter-repo` to take about https://www.youtube.com/watch?v=oHg5SJYRHA0[20% of the time] of `filter-branch`
+* Auto cleanup - re-packing and cleanup is done automatically as part of the command execution
+* It's designed to be simple for simpletons and extensible for experts
+* https://stackoverflow.com/questions/25720268/git-commands-that-could-break-rewrite-the-history/58251653#58251653[Filter-branch is deprecated]

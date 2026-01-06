@@ -1,0 +1,166 @@
+= A blog, the fun way
+:page-role: article
+:page-layout: article
+:page-date: 2019-08-18
+:page-tags: hugo,docker,netlify
+:page-description: Putting disparate technologies together always takes longer than expected.
+:icons: font
+
+To write a blog you must first build a blog? +
+Apparently in my mind this is true, so here we are. 
+
+*_tl;dr_*:  _putting disparate technologies together always takes longer than expected_
+
+
+== Tools 
+- Vs Code
+- Docker
+- Hugo
+- asciidoctor
+- github 
+- netlify
+
+
+Whilst VS Code and Docker aren't strictly necesary, I've been itching to use the https://code.visualstudio.com/docs/remote/containers[Container Development] feauture of VS Code. +
+You're going to need to install the https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.vscode-remote-extensionpack[Remote Development extension pack] for this.
+
+
+== Create a repo
+do your thing. 
+
+==  Add a Dockerfile
+    
+This is pretty standard sauce; using https://github.com/klakegg/docker-hugo[klakegg/docker-hugo] as the base, because the Hugo package provided using `apt-get` is several versions behind which caused issues with the themes. +
+Also I was too lazy to build it from source.
+
+[source,docker]
+----
+FROM klakegg/hugo:0.74.3-ext-ubuntu
+
+RUN apt-get update && apt-get install -y \
+    git \
+    ruby-full \
+    silversearcher-ag \
+    vim \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN gem install asciidoctor:2.0.1 \
+    asciidoctor-diagram:1.5.18 \  
+    rouge:3.6.0 
+ # <1>
+
+COPY ./asciidoctor /usr/local/sbin
+
+RUN chmod +x /usr/local/sbin/asciidoctor
+----
+<1> `asciidoctor-diagram` not used just yet.
+
+== Do some unsafe stuff with asciidoctor
+
+Hugo calls asciidoctor with the https://asciidoctor.org/man/asciidoctor/#security-settings[`--safe` parameter] which seems reasonable. 
+The unreasonable part is that you can't disable it or you pass custom parameters to it.
+
+https://blog.anoff.io/2019-02-17-hugo-render-asciidoc/[Kudos here] for the original idea, I just tweaked it slightly. +
+If you place the `asciidoctor` script in `/usr/local/sbin/` it will be evaluated before the original binary located at `/usr/local/bin`, allowing us to intercept the call and do with it as we wish.
+
+[source,bash]
+----
+#!/bin/bash
+
+# https://unix.stackexchange.com/a/258514
+for arg do
+  shift
+  [ "$arg" = "--safe" ] && continue
+  set -- "$@" "$arg"
+done
+
+ /usr/local/bin/asciidoctor "$@"
+
+----
+WARNING: After I changed the context of the hugo site to not be in a sub-folder, then this wasn't necessary, but it might still come in useful when I want to use diagrams. 
+
+== Add https://code.visualstudio.com/docs/remote/containers#_devcontainerjson-reference[.devcontainer.json]
+
+This tells VS Code how to instantiate your container, this file only has the `dockerFile` portion, but if you want to push using your ssh keys, you might want the additional ssh related snippets. +
+
+[source,json]
+----
+//See https://aka.ms/vscode-remote/devcontainer.json for format details.
+{
+	"dockerFile": "Dockerfile",
+	"extensions": [],
+	"runArgs": [ 
+		"-v", "${env:HOME}${env:USERPROFILE}/.ssh:/root/.ssh-localhost:ro", // <1>
+		"--name", "hugo_dev" // <2>
+
+	],
+	"postCreateCommand": "mkdir -p ~/.ssh && cp -r ~/.ssh-localhost/* ~/.ssh && chmod 700 ~/.ssh && chmod 600 ~/.ssh/*" // <3>
+}
+----
+<1> mount the ssh keys in a temporary location
+<2> name the container so that we get a consistent container name
+<3> now that the container is running, move the keys into a better location
+
+Because I'm lazy I added the `--name` argument so that I can always access the container with the same command `docker exec -it hugo_dev  bash -c 'cd /workspaces/blog ; exec "${SHELL:-sh}"'`
+
+
+== Maybe we should create this blog and set a theme
+
+[source,bash]
+----
+docker exec -it hugo_dev  bash -c 'cd /workspaces/tldr ; exec "${SHELL:-sh}"'
+hugo new site tldr
+mv tldr/* . <1>
+rm tldr
+git submodule add https://github.com/luizdepra/hugo-coder.git themes/hugo-coder  
+----
+<1> we don't need the sub folder - we aren't doing multiple sites
+
+It's also necessary to update the `theme` value to `hugo-coder`, as mentioned on the https://github.com/luizdepra/hugo-coder/[hugo-coder homepage]
+
+=== Let's go rouge 
+
+Hugo doesn't seem to support asciidoctor very well; Code highlighting and admonitions need to be https://rgielen.net/posts/2019/creating-a-blog-with-hugo-and-asciidoctor/[manually added as well].
+
+=== Hello netlify
+
+Finally, lets make these ramblings more accessible. + 
+I found the following readings useful in getting this blog hosted.
+
+* https://www.netlify.com/docs/build-gotchas/
+* https://www.netlify.com/docs/build-settings/
+* https://www.netlify.com/docs/continuous-deployment/#deploy-contexts
+* https://www.netlify.com/blog/2016/07/20/introducing-deploy-previews-in-netlify/
+* https://gohugo.io/hosting-and-deployment/hosting-on-netlify/
+* https://www.garrickadenbuie.com/blog/blogdown-netlify-new-post-workflow
+* https://www.netlify.com/docs/netlify-toml-reference/
+
+My final `netlify.toml` looks as follows
+[source,toml]
+----
+[build] 
+  publish = "public"
+  command = "hugo --gc -b $DEPLOY_PRIME_URL"
+  HUGO_VERSION = "0.55.6" 
+
+[context.production]
+  HUGO_ENV = "production"
+  HUGO_ENABLEGITINFO = "true"
+  command = "hugo --gc --minify"
+
+[context.deploy-preview]
+  command = "hugo --gc --buildDrafts --buildFuture -b $DEPLOY_PRIME_URL"
+
+[context.deploy-preview.environment]
+----
+
+Also worth noting that I had to include a `Gemfile` 
+[source,ruby]
+----
+source 'https://rubygems.org'
+
+gem 'asciidoctor','2.0.1'
+gem 'rouge','3.6.0'
+----
+
+Source of blog can be found at https://github.com/timothysparg/tldr

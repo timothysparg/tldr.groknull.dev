@@ -1,0 +1,5 @@
+name: tldr
+title: TL;DR
+version: main
+nav:
+  - modules/ROOT/nav.adoc
