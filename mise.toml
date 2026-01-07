@@ -12,7 +12,7 @@ watchexec = "latest"
 
 [tasks.build]
 run = "antora --fetch antora-playbook.yml"
-sources = ["antora-playbook.yml", "antora.yml", "modules/**/*"]
+sources = ["antora-playbook.yml", "antora.yml", "posts-extension.js", "modules/**/*"]
 outputs = ["public/**"]
 
 [tasks.serve]
