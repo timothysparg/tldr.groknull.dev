@@ -1,7 +1,28 @@
 
 [settings]
 lockfile = true
+experimental = true
+
 
 [tools]
 node = "lts"
 "npm:antora" = "latest"
+"npm:http-server" = "latest"
+watchexec = "latest"
+
+[tasks.build]
+run = "antora --fetch antora-playbook.yml"
+sources = ["antora-playbook.yml", "antora.yml", "modules/**/*"]
+outputs = ["public/**"]
+
+[tasks.serve]
+run = "http-server public -p 5959 -c-1"
+
+[tasks.watch-build]
+run = "mise watch build"
+
+[tasks.dev]
+description = "Watch for changes, rebuild, and serve the site"
+run = [
+  { tasks = ["serve", "watch-build"] }
+]
