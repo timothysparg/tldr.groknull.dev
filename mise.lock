@@ -15,6 +15,10 @@ backend = "npm:antora"
 version = "14.1.1"
 backend = "npm:http-server"
 
+[[tools."npm:live-server"]]
+version = "1.2.2"
+backend = "npm:live-server"
+
 [[tools.watchexec]]
 version = "2.3.2"
 backend = "aqua:watchexec/watchexec"

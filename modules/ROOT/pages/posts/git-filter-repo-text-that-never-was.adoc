@@ -1,13 +1,15 @@
 = git filter-repo: The text that never was
 :page-role: article
-:page-date: 2020-08-15
-:page-tags: git,filter-repo,fishshell
-:page-draft: true
 :page-description: Use git filter-repo to strip a repeated password snippet.
-
+:page-revdate: 2020-08-15
+:page-tags: git,filter-repo,fishshell
+:page-layout: article
+:article-card-image: image$text-that-never-was-dark.png
 :icons: font
 
+****
 *_tl;dr_*: _Some text just doesn't belong in a repository_
+****
 
 Here's a pithy bash one-liner to remove it:
 

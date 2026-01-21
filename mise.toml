@@ -7,7 +7,7 @@ experimental = true
 [tools]
 node = "lts"
 "npm:antora" = "latest"
-"npm:http-server" = "latest"
+"npm:live-server" = "latest"
 watchexec = "latest"
 
 [tasks.build]
@@ -16,7 +16,7 @@ sources = ["antora-playbook.yml", "antora.yml", "posts-extension.js", "modules/*
 outputs = ["public/**"]
 
 [tasks.serve]
-run = "http-server public -p 5959 -c-1"
+run = "live-server public --port=5959 --no-browser"
 
 [tasks.watch-build]
 run = "mise watch build"
