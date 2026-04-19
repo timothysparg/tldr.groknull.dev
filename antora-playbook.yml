@@ -8,14 +8,22 @@ content:
       worktrees: true
 antora:
   extensions:
-    - ./posts-extension.js
+    - require: ./antora-tldr-ui.js
+      shiki:
+        lightTheme: github-light
+        darkTheme: github-dark
+      data:
+        direct_icon_urls:
+          pkl: https://raw.githubusercontent.com/apple/pkl-lang.org/refs/heads/main/src/supplemental-ui/img/favicon.svg
+          toml: https://raw.githubusercontent.com/toml-lang/toml/refs/heads/main/logos/toml.svg
+          asciidoc: https://raw.githubusercontent.com/asciidoctor/brand/refs/heads/main/logo/logo-fill-color.svg
 ui:
   bundle:
-    url: https://github.com/timothysparg/tldr-ui/releases/download/v1.4.1/ui-bundle.zip
-    # url: https://github.com/timothysparg/tldr-ui/releases/download/beta/ui-bundle.zip
+    url: https://github.com/timothysparg/tldr-ui/releases/download/beta/ui-bundle.zip
     snapshot: true
 output:
   dir: public
 asciidoc:
   attributes:
     allow-uri-read: ""
+    toc: macro

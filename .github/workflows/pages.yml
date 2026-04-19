@@ -31,6 +31,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Resync UI bundle
+        run: mise ui
+
       - name: Build site
         run: npm run build
 

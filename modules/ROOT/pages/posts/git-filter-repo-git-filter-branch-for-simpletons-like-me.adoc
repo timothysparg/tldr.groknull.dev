@@ -1,17 +1,19 @@
 = git filter-repo: A git filter-branch replacement for simpletons like me
 :page-role: article
-:page-revdate: 2020-06-21
+:date: 2020-06-21
 :page-tags: git,filter-repo,filter-branch
 :page-description: A simple walkthrough of git filter-repo tasks and why it beats filter-branch.
 :icons: font
 :page-layout: article
-:article-card-image: image$git-filter-for-simpletons-dark.png
+:article-card-image-light: image$git-filter-for-simpletons-light.png
+:article-card-image-dark: image$git-filter-for-simpletons-dark.png
 
 Also if you're not a simpleton it has the benefit of being significantly faster, but I digress. 
 
-****
-*_tl;dr_*:  _git filter-repo --replace-text <(echo "filter-branch==>filter-repo")_
-****
+[TLDR]
+====
+__git filter-repo --replace-text <(echo "filter-branch==>filter-repo")__
+====
 
 I had the _enviable_ task of migrating some code out from a monolithic repository recently.
 

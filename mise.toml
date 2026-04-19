@@ -3,7 +3,6 @@
 lockfile = true
 experimental = true
 
-
 [tools]
 node = "lts"
 "npm:antora" = "latest"

@@ -1,18 +1,21 @@
 = A blog, the fun way
 :page-role: article
 :page-layout: article
-:page-revdate: 2019-08-18
+:revdate: 2019-08-18
 :page-tags: hugo,docker,netlify
 :page-description: Putting disparate technologies together always takes longer than expected.
 :icons: font
-:article-card-image: image$a-blog-the-fun-way-dark.png
+:article-card-image-light: image$a-blog-the-fun-way-light.png
+:article-card-image-dark: image$a-blog-the-fun-way-dark.png
+:toc: macro
 
 To write a blog you must first build a blog? +
 Apparently in my mind this is true, so here we are. 
 
-****
-*_tl;dr_*:  _putting disparate technologies together always takes longer than expected_
-****
+[TLDR]
+====
+__putting disparate technologies together always takes longer than expected__
+====
 
 == Tools 
 - Vs Code
