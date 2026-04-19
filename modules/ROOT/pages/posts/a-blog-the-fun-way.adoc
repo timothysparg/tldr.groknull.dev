@@ -39,6 +39,7 @@ This is pretty standard sauce; using https://github.com/klakegg/docker-hugo[klak
 Also I was too lazy to build it from source.
 
 [source,docker]
+[code.callout=11]
 ----
 FROM klakegg/hugo:0.74.3-ext-ubuntu
 
@@ -52,7 +53,6 @@ RUN apt-get update && apt-get install -y \
 RUN gem install asciidoctor:2.0.1 \
     asciidoctor-diagram:1.5.18 \  
     rouge:3.6.0 
- # <1>
 
 COPY ./asciidoctor /usr/local/sbin
 
@@ -89,17 +89,18 @@ WARNING: After I changed the context of the hugo site to not be in a sub-folder,
 This tells VS Code how to instantiate your container, this file only has the `dockerFile` portion, but if you want to push using your ssh keys, you might want the additional ssh related snippets. +
 
 [source,json]
+[code.callout="4,6,7,10"]
 ----
 //See https://aka.ms/vscode-remote/devcontainer.json for format details.
 {
 	"dockerFile": "Dockerfile",
 	"extensions": [],
 	"runArgs": [ 
-		"-v", "${env:HOME}${env:USERPROFILE}/.ssh:/root/.ssh-localhost:ro", // <1>
-		"--name", "hugo_dev" // <2>
+		"-v", "${env:HOME}${env:USERPROFILE}/.ssh:/root/.ssh-localhost:ro",
+		"--name", "hugo_dev"
 
 	],
-	"postCreateCommand": "mkdir -p ~/.ssh && cp -r ~/.ssh-localhost/* ~/.ssh && chmod 700 ~/.ssh && chmod 600 ~/.ssh/*" // <3>
+	"postCreateCommand": "mkdir -p ~/.ssh && cp -r ~/.ssh-localhost/* ~/.ssh && chmod 700 ~/.ssh && chmod 600 ~/.ssh/*"
 }
 ----
 <1> mount the ssh keys in a temporary location
