@@ -1,7 +1,15 @@
+min_version = "2026.9.14"  # .mise/conf.d/ folder fragments
+monorepo_root = true
 
 [settings]
 lockfile = true
 experimental = true
+
+[monorepo]
+config_roots = ["modules/ROOT/pages/posts/*"]
+
+[env]
+ASSETS_DIR = "{{config_root}}/modules/ROOT/assets"
 
 [tools]
 node = "lts"
@@ -25,3 +33,5 @@ description = "Watch for changes, rebuild, and serve the site"
 run = [
   { tasks = ["serve", "watch-build"] }
 ]
+
+# The vhs:record task template for screen recordings lives in .mise/conf.d/vhs/

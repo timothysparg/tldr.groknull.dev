@@ -6,3 +6,5 @@ public/
 antora-tldr-ui.js
 asciidoc-tldr-ui.js
 build/
+.recordings/
+

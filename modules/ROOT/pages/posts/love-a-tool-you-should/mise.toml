@@ -1,0 +1,29 @@
+min_version = "2026.9.13"
+
+[tools]
+vhs = "latest"
+
+# Host packages the recordings need. Install with `mise bootstrap packages apply`.
+[bootstrap.packages]
+"brew:ffmpeg" = "latest"
+"brew:ttyd" = "latest"
+"brew-cask:docker-desktop" = { version = "latest", adopt = true, os = "macos" }
+
+[tasks."demo:build-image"]
+description = "Build the preconfigured Docker image for the gold quickstart demo"
+sources = ["./Dockerfile"]
+run = '''
+docker build -t gold-demo-base .
+'''
+
+[tasks."demo:record-mise-install"]
+extends = "vhs:record"
+description = "Record the gold quickstart terminal demo"
+depends = ["demo:build-image"]
+vars = { script = "mise-install-demo" }
+
+[tasks."demo:record-hk"]
+extends = "vhs:record"
+description = "Record hk fixing a badly formatted file on commit"
+depends = ["demo:build-image"]
+vars = { script = "hk-lint-demo" }

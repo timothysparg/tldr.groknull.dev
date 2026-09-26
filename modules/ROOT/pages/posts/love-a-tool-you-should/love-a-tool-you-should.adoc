@@ -1,0 +1,218 @@
+= Love your tools enough to improve them
+:page-role: article
+:page-description: How mise and hk make git hooks painless, and the PRs I sent upstream to make hk even better.
+:page-date: 2026-03-28
+:page-tags: hk, git-hooks
+:page-layout: article
+:article-card-image-light: image$love-a-tool-you-should-light.png
+:article-card-image-dark: image$love-a-tool-you-should-dark.png
+:icons: font
+:toc: macro
+
+I've always liked the idea of git hooks, but my first real encounter with them was clunky.
+It was a Java project using https://github.com/typicode/husky[Husky], a great tool, but depending on Node.js in a Java codebase felt out of place.
+https://github.com/pre-commit/pre-commit[pre-commit] is similar: solid, but most at home in the Python ecosystem.
+
+For a long time https://github.com/evilmartians/lefthook[Lefthook] was my go-to: a single binary, not tied to any ecosystem.
+But one thing kept gnawing at me with all of these tools: every developer still has to install and configure them before the hooks do anything.
+
+## The Missing Piece
+
+I've recently become quite fond of the https://github.com/jdx[jdx] ecosystem for developer focused tooling. Whilst each tool is a separate project their superpower is that they are designed to be used together. It's one of those cases where the whole is greater than the sum of its parts.
+
+In this instance it's the combination of https://github.com/jdx/mise[mise] and https://github.com/jdx/hk[hk] that finally stopped it gnawing at me. +
+Whilst `hk` itself is focused on being a git hook manager, if we utilise the integration with `mise` we can get git hooks that get installed automatically with all the other tools the project requires.
+
+Your quickstart boils down to the following steps:
+
+====
+. `git clone`
+. `mise trust`
+. `mise install`
+====
+
+That's it. `Mise` will read the `mise.toml` file and install all the required tools, including `hk`. It will also install the git hooks automatically.
+
+Let's dig a little deeper and look at an example.
+
+```toml
+[tools] <1>
+hk = "latest"
+actionlint = "latest"
+java = "21@temurin"
+"github:google/google-java-format" = "latest"
+
+[env]
+HK_MISE = true <2>
+
+[hooks]
+postinstall = "hk install --global --mise" <3>
+```
+
+<1> Every tool the project needs, pinned in one place
+<2> Hooks run inside the `mise` environment, with the exact tool versions above
+<3> The magic: git hooks installed straight after the tools
+
+[NOTE]
+====
+`--global` needs Git 2.54+. On older Git, use `hk install --mise` for a per-repo install
+====
+
+A minimal `hk.pkl` would look like this:
+
+```pkl
+amends "package://github.com/jdx/hk/releases/download/v2.2.0/hk@2.2.0#/Config.pkl"
+import "package://github.com/jdx/hk/releases/download/v2.2.0/hk@2.2.0#/Builtins.pkl"
+
+steps { <1>
+  ["actionlint"] = Builtins.actionlint <2>
+  ["google_java_format"] { <3>
+    glob = List("**/*.java")
+    exclude = List("**/target/**")
+    check = "google-java-format --dry-run --set-exit-if-changed {{files}}"
+    fix = "google-java-format --replace {{files}}"
+    batch = true
+  }
+  ["mise"] = Builtins.mise
+}
+
+hooks {
+  ["commit-msg"] { <4>
+    steps {
+      ["check_conventional_commit"] = Builtins.check_conventional_commit
+    }
+  }
+}
+```
+
+<1> Top-level steps feed hk's predefined `check`, `fix`, and `pre-commit` hooks
+<2> hk ships with over 150 https://hk.jdx.dev/builtins[builtins]
+<3> Inline linter declaration
+<4> Other hooks are declared explicitly
+
+
+Each of the builtins is just a definition of its usage pattern in the https://github.com/jdx/hk/blob/main/pkl/builtins/google_java_format.pkl[hk repository].
+
+```pkl
+ ["google_java_format"] {
+    glob = List("**/*.java")
+    exclude = List("**/target/**")
+    check = "google-java-format --dry-run --set-exit-if-changed {{files}}"
+    fix = "google-java-format --replace {{files}}"
+    batch = true
+  }
+```
+
+[IMPORTANT]
+====
+hk runs your linters. mise installs them. Skip mise, and that part's on you
+====
+
+This is what it looks like in action
+
+[.theme-media.light]
+video::mise-install-demo-light.mp4[opts="autoplay,loop,muted,nocontrols"]
+
+[.theme-media.dark]
+video::mise-install-demo-dark.mp4[opts="autoplay,loop,muted,nocontrols"]
+
+What I love about combining these two tools is that `mise.toml` becomes the single source of truth.
+Need to upgrade a tool, or add a new one? Update `mise.toml`, and everyone else on the project picks up the change the next time they pull.
+
+But let's hook back around to hk, shall we?
+With mise looking after the tools, hk can focus on what it does best: managing git hooks, without anyone having to install hk or the hooks themselves.
+
+[.theme-media.light]
+video::hk-lint-demo-light.mp4[opts="autoplay,loop,muted,nocontrols"]
+
+[.theme-media.dark]
+video::hk-lint-demo-dark.mp4[opts="autoplay,loop,muted,nocontrols"]
+
+As much as I love hk, there's still room for improvement, and as a user it's in my interest to help make it better.
+So I've been opening issues and PRs.
+Even the ones that don't get merged aren't wasted: they add to the project's shared knowledge, and the discussions around them often shape what does land.
+
+## Adding to the builtin linters
+
+### google-java-format
+
+I like the google-java-format, and I'd like it even better if I could just write `Builtins.google_java_format` instead of the full `google_java_format` definition.
+
+So I created a https://github.com/jdx/hk/pull/777[PR to add it to the builtins].
+
+### trailing-whitespace
+
+There is a very useful builtin https://hk.jdx.dev/cli/util/trailing-whitespace.html[trailing_whitespace] linter that checks for trailing whitespace in files. However it also removes trailing whitespaces from markdown files which I dont think is a good idea, unless you opt in to that behaviour as trailing whitespace have semantic meaning in markdown files.
+
+So I created a https://github.com/jdx/hk/pull/778[PR to add an opt in for this behaviour].  
+
+### docker-compose-linter
+
+I often use docker compose files in my projects, and I recently came across https://github.com/zavoloklom/docker-compose-linter[docker-compose-linter]. I'm no expert on the best practices for docker compose files, so I'm quite happy to lean on a linter to tell me when I'm doing something wrong. 
+
+So here's the PR I created to add it to hk: https://github.com/jdx/hk/pull/779[PR to add docker-compose-linter to hk]
+
+
+## Docs should also be loved
+
+Using mise to bootstrap hk is one of the most underrated features of the ecosystem, however the docs don't highlight this pattern. I had a quick discussion with https://jdx.dev/[Jeff Dickey] about what the difference approaches to this were and we came to a conclusion about what the https://github.com/jdx/hk/discussions/754[recommendd approach] should be. 
+
+So I created a PR to update the docs: https://github.com/jdx/hk/pull/780[PR to update the docs]
+
+## Usability improvements
+
+### make excludes non-null by default
+
+As much as I like the `hk.pkl` file, I think there are some rough edges that could be smoothed out quite easily.
+Idiomatically if we want to modify a builtin config we do something like this:
+
+```pkl
+  ["newlines"] = (Builtins.newlines) {
+    exclude = Builtins.newlines.exclude + List("**/*.svg")
+  }
+```
+
+However this requires that the builtin config has an exclude field, and that the exclude field is not null.
+If you want to be safe you end up doing this:
+
+```pkl
+  ["newlines"] = (Builtins.newlines) {
+    exclude = (Builtins.newlines.exclude ?? List()) + List("**/*.svg")
+  }
+```
+
+which just feels a bit verbose. By setting the exclude field in `pkl/Config.pkl` to `= List()` we can do away with the null checking. 
+
+Here's the https://github.com/jdx/hk/pull/781[PR to make excludes non-null by default].
+
+## allow linters to have needs, or at the very least required env vars
+
+I wanted to add the https://github.com/google/addlicense[addlicense] linter to hk, but I ran into the issue that when we use the default config it adds the Google license header to all files, which I suspect is not what most people want. 
+
+If you wanted to use this builtin linter, and you don't work at Google, you would have to do something like 
+
+```pkl
+  ["addlicense"] = (Builtins.addlicense) {
+    check = "addlicense --check -f MY_LICENSE {{files}}"
+    fix = "addlicense -f MY_LICENSE {{files}}"
+  }
+```
+
+which then feels like we aren't really providing much value by adding the linter as a builtin. 
+
+The addlicense tool can take in a `LICENSE_FILE` as a parameter, so in this context it would make sense that the `LICENSE_FILE` should be required. 
+I tried a few ways of doing this, but they all felt a bit clunky. I tried using `stepCondition` which gives you
+
+```pkl
+step_condition = "exec('if [ -n \"$LICENSE_FILE\" ] && [ -f \"$LICENSE_FILE\" ]; then echo -n 1; fi') == '1'"
+```
+
+and whilst this works (and is the least hacky solution I found), it still doesn't feel like this is what the `step_condition` field was intended for.
+
+https://github.com/jdx/hk/pull/785[PR to add required field to prevent unconfigured steps from running]
+
+
+---
+footnotes:
+- https://github.com/jdx/hk/discussions/754[Idiomatic mise integration setup]
+- https://hk.jdx.dev/mise_integration.html[Mise Integration]
