@@ -1,0 +1,60 @@
+# VHS recordings: a self-contained conf.d folder fragment (mise 2026.9.14+).
+# {{config_root}} is this folder, so the theme and settings tapes live alongside.
+[env]
+VHS_DIR = "{{config_root}}"
+# ffmpeg post-processing for each theme (see vhs:record below)
+VHS_FILTER_LIGHT = '''
+drawgrid=w=0:h=4:t=1:c=black@0.15,
+vignette=0.4,
+curves=all='0/0.1 0.5/0.5 1/0.9',
+noise=alls=2:allf=t+u,
+geq=r='p(mod(X+random(1)*0.5,W),Y)':g='p(mod(X+random(1)*0.5,W),Y)':b='p(mod(X+random(1)*0.5,W),Y)'
+'''
+VHS_FILTER_DARK = '''
+split [main][glow];
+[glow] lutyuv=y='if(gt(val,145),val,0)':u=128:v=128, boxblur=2:1 [glow_clean];
+[main][glow_clean] blend=all_mode='lighten':all_opacity=0.18 [v1];
+[v1] drawgrid=w=0:h=4:t=1:c=black@0.15,
+vignette=0.4,
+noise=alls=1:allf=t,
+geq=r='p(mod(X+(if(gt(random(0),0.995),0.5,0)),W),Y)':g='p(mod(X+(if(gt(random(0),0.995),0.5,0)),W),Y)':b='p(mod(X+(if(gt(random(0),0.995),0.5,0)),W),Y)'
+'''
+
+# Record a script tape and post-process it into modules/ROOT/assets/images.
+# Extending tasks set `vars.script`: the tape is `<script>.tape`, the video `<script>-<theme>.mp4`.
+# theme-<theme>.tape and settings.tape from this folder are prepended; all tapes are read in as raw strings.
+# Raw recordings go to .recordings/ (override with VHS_RAW_DIR=...).
+#
+# Usage: mise run <task> light|dark
+[task_templates."vhs:record"]
+description = "Record a script tape to MP4 in the light or dark theme"
+usage = '''
+arg "<theme>" help="light: photocopied look; dark: glowing CRT look" {
+  choices "light" "dark"
+}
+'''
+# No sources/outputs: one task records either theme, and mise can't track freshness
+# per theme (outputs can't use {{usage.*}}), so recordings always run.
+# mise renders this script once before the arguments are parsed, with an empty
+# usage.theme, so the whole script is guarded to keep read_file from failing.
+run = '''
+{% if usage.theme %}
+VHS_RAW_DIR="${VHS_RAW_DIR:-.recordings}"
+mkdir -p "$VHS_RAW_DIR"
+vhs -o "$VHS_RAW_DIR/{{vars.script}}-{{usage.theme}}.mp4" - <<'VHS_TAPE_EOF'
+{{ read_file(path=env.VHS_DIR ~ "/theme-" ~ usage.theme ~ ".tape") }}
+{{ read_file(path=env.VHS_DIR ~ "/settings.tape") }}
+
+{{ read_file(path=vars.script ~ ".tape") }}
+VHS_TAPE_EOF
+{% if usage.theme == "dark" %}
+FILTER="$VHS_FILTER_DARK"
+BITRATE=3000k
+{% else %}
+FILTER="$VHS_FILTER_LIGHT"
+BITRATE=2000k
+{% endif %}
+ffmpeg -y -i "$VHS_RAW_DIR/{{vars.script}}-{{usage.theme}}.mp4" -vf "$FILTER" \
+  -c:v h264_videotoolbox -b:v "$BITRATE" "$ASSETS_DIR/images/{{vars.script}}-{{usage.theme}}.mp4"
+{% endif %}
+'''

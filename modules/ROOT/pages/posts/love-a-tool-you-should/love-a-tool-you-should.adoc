@@ -55,7 +55,7 @@ postinstall = "hk install --global --mise" <3>
 
 [NOTE]
 ====
-`--global` needs Git 2.54+. On older Git, use `hk install --mise` for a per-repo install
+`--global` needs https://github.blog/open-source/git/highlights-from-git-2-54/#h-config-based-hooks[Git 2.54+]. On older Git, use `hk install --mise` for a per-repo install
 ====
 
 A minimal `hk.pkl` would look like this:
@@ -128,43 +128,40 @@ video::hk-lint-demo-light.mp4[opts="autoplay,loop,muted,nocontrols"]
 [.theme-media.dark]
 video::hk-lint-demo-dark.mp4[opts="autoplay,loop,muted,nocontrols"]
 
+## Loving it enough to improve it
+
 As much as I love hk, there's still room for improvement, and as a user it's in my interest to help make it better.
-So I've been opening issues and PRs.
-Even the ones that don't get merged aren't wasted: they add to the project's shared knowledge, and the discussions around them often shape what does land.
+So over a couple of days I opened six PRs against hk.
+Within a few days, five were merged. One very much wasn't.
 
-## Adding to the builtin linters
+### New builtins
 
-### google-java-format
+I like https://github.com/google/google-java-format[google-java-format], but I wanted to just write `Builtins.google_java_format` instead of the full `google_java_format` definition.
+That's now a https://hk.jdx.dev/builtins.html#google-java-format[builtin], merged in https://github.com/jdx/hk/pull/777[#777].
 
-I like the google-java-format, and I'd like it even better if I could just write `Builtins.google_java_format` instead of the full `google_java_format` definition.
+I often use Docker Compose files in my projects, and I'd recently come across https://github.com/zavoloklom/docker-compose-linter[docker-compose-linter].
+I'm no expert on Compose best practices, so I'm happy to lean on a linter to tell me when I'm doing something wrong.
+It's now available as the https://hk.jdx.dev/builtins.html#dclint[`dclint` builtin], merged in https://github.com/jdx/hk/pull/779[#779].
 
-So I created a https://github.com/jdx/hk/pull/777[PR to add it to the builtins].
+### Better docs for the mise setup
 
-### trailing-whitespace
+Using mise to bootstrap hk is one of the most underrated features of the ecosystem, but the docs didn't highlight this pattern.
+I had a quick discussion with https://jdx.dev/[Jeff Dickey] about the different approaches, and we agreed on a https://github.com/jdx/hk/discussions/754[recommended setup].
+I added it to hk's https://hk.jdx.dev/mise_integration.html[mise integration docs] in https://github.com/jdx/hk/pull/780[#780].
 
-There is a very useful builtin https://hk.jdx.dev/cli/util/trailing-whitespace.html[trailing_whitespace] linter that checks for trailing whitespace in files. However it also removes trailing whitespaces from markdown files which I dont think is a good idea, unless you opt in to that behaviour as trailing whitespace have semantic meaning in markdown files.
+[WARNING]
+====
+This is already out of date.
+hk's docs have since moved on to a one-off `hk install --global --mise` (Git 2.54+), which is what the <<_the_missing_piece,setup above>> uses.
+====
 
-So I created a https://github.com/jdx/hk/pull/778[PR to add an opt in for this behaviour].  
+### Friendlier configuration
 
-### docker-compose-linter
+hk's Pkl schema had a couple of papercuts worth fixing.
 
-I often use docker compose files in my projects, and I recently came across https://github.com/zavoloklom/docker-compose-linter[docker-compose-linter]. I'm no expert on the best practices for docker compose files, so I'm quite happy to lean on a linter to tell me when I'm doing something wrong. 
+#### Excludes that are never null
 
-So here's the PR I created to add it to hk: https://github.com/jdx/hk/pull/779[PR to add docker-compose-linter to hk]
-
-
-## Docs should also be loved
-
-Using mise to bootstrap hk is one of the most underrated features of the ecosystem, however the docs don't highlight this pattern. I had a quick discussion with https://jdx.dev/[Jeff Dickey] about what the difference approaches to this were and we came to a conclusion about what the https://github.com/jdx/hk/discussions/754[recommendd approach] should be. 
-
-So I created a PR to update the docs: https://github.com/jdx/hk/pull/780[PR to update the docs]
-
-## Usability improvements
-
-### make excludes non-null by default
-
-As much as I like the `hk.pkl` file, I think there are some rough edges that could be smoothed out quite easily.
-Idiomatically if we want to modify a builtin config we do something like this:
+Say you wanted the `newlines` builtin to skip SVG files. You would instinctively try to append to its `exclude` list:
 
 ```pkl
   ["newlines"] = (Builtins.newlines) {
@@ -172,8 +169,8 @@ Idiomatically if we want to modify a builtin config we do something like this:
   }
 ```
 
-However this requires that the builtin config has an exclude field, and that the exclude field is not null.
-If you want to be safe you end up doing this:
+However, this required that the builtin config had an `exclude` field, and that it wasn't null.
+If you wanted to be safe you ended up doing this:
 
 ```pkl
   ["newlines"] = (Builtins.newlines) {
@@ -181,15 +178,14 @@ If you want to be safe you end up doing this:
   }
 ```
 
-which just feels a bit verbose. By setting the exclude field in `pkl/Config.pkl` to `= List()` we can do away with the null checking. 
+which gave me the _ick_. 
+Giving `exclude` an empty list as its default in `pkl/Config.pkl` means it's never null, so you can always append to it, and the first snippet just works.
+Merged in https://github.com/jdx/hk/pull/781[#781].
 
-Here's the https://github.com/jdx/hk/pull/781[PR to make excludes non-null by default].
+#### Steps that need configuration
 
-## allow linters to have needs, or at the very least required env vars
-
-I wanted to add the https://github.com/google/addlicense[addlicense] linter to hk, but I ran into the issue that when we use the default config it adds the Google license header to all files, which I suspect is not what most people want. 
-
-If you wanted to use this builtin linter, and you don't work at Google, you would have to do something like 
+I wanted to add the https://github.com/google/addlicense[addlicense] linter as a builtin to hk, but out of the box it added a Google license header to every file, which wasn't much use unless you worked at Google.
+To use your own license you'd have needed to override both the `check` and `fix` commands:
 
 ```pkl
   ["addlicense"] = (Builtins.addlicense) {
@@ -198,21 +194,38 @@ If you wanted to use this builtin linter, and you don't work at Google, you woul
   }
 ```
 
-which then feels like we aren't really providing much value by adding the linter as a builtin. 
-
-The addlicense tool can take in a `LICENSE_FILE` as a parameter, so in this context it would make sense that the `LICENSE_FILE` should be required. 
-I tried a few ways of doing this, but they all felt a bit clunky. I tried using `stepCondition` which gives you
+at which point the builtin wasn't adding much value.
+addlicense can take a `LICENSE_FILE`, so it made sense for that to be required.
+I tried a few ways of doing this, and they all felt a bit clunky.
+The least hacky was https://hk.jdx.dev/configuration.html#step-step-condition-string[`step_condition`]:
 
 ```pkl
 step_condition = "exec('if [ -n \"$LICENSE_FILE\" ] && [ -f \"$LICENSE_FILE\" ]; then echo -n 1; fi') == '1'"
 ```
 
-and whilst this works (and is the least hacky solution I found), it still doesn't feel like this is what the `step_condition` field was intended for.
+It worked, but it didn't feel like what `step_condition` was intended for.
 
-https://github.com/jdx/hk/pull/785[PR to add required field to prevent unconfigured steps from running]
+So in https://github.com/jdx/hk/pull/785[#785] I added a https://hk.jdx.dev/configuration.html#step-required-list-string[`required`] field.
+A step can now declare the environment variables it needs, and use them in its commands:
 
+```pkl
+  ["addlicense"] {
+    glob = List("**/*.java")
+    required = List("LICENSE_FILE")
+    check = "addlicense --check -f $LICENSE_FILE {{files}}"
+    fix = "addlicense -f $LICENSE_FILE {{files}}"
+  }
+```
 
----
-footnotes:
-- https://github.com/jdx/hk/discussions/754[Idiomatic mise integration setup]
-- https://hk.jdx.dev/mise_integration.html[Mise Integration]
+Until `LICENSE_FILE` is set, whether in your shell, mise's `[env]` or hk's own `env` block, hk skips the step and says why.  
+Now that that `required` field is available I should probably submit a PR to add it to the builtins, so that others can use it too.
+
+### The one that didn't land
+
+The https://hk.jdx.dev/cli/util/trailing-whitespace.html[trailing_whitespace] builtin also strips trailing whitespace from Markdown files.
+I didn't think that was a good default, because trailing whitespace has semantic meaning in Markdown, so I opened https://github.com/jdx/hk/pull/778[#778] to exclude `.md` files.
+
+jdx's reply, in full: "I disagree".
+
+It's exactly what I'd want from a maintainer: a clear, unambiguous answer, not weeks of polite back and forth.
+Open source projects need strong leadership and someone with a distinct direction, and that was evident here.
