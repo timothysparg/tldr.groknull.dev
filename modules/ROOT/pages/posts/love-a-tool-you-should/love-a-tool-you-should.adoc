@@ -137,17 +137,17 @@ Within a few days, five were merged. One very much wasn't.
 ### New builtins
 
 I like https://github.com/google/google-java-format[google-java-format], but I wanted to just write `Builtins.google_java_format` instead of the full `google_java_format` definition.
-That's now a https://hk.jdx.dev/builtins.html#google-java-format[builtin], merged in https://github.com/jdx/hk/pull/777[#777].
+So I added it as a https://hk.jdx.dev/builtins.html#google-java-format[builtin] in https://github.com/jdx/hk/pull/777[#777] pass:[<span class="pr-status merged">Merged</span>].
 
 I often use Docker Compose files in my projects, and I'd recently come across https://github.com/zavoloklom/docker-compose-linter[docker-compose-linter].
 I'm no expert on Compose best practices, so I'm happy to lean on a linter to tell me when I'm doing something wrong.
-It's now available as the https://hk.jdx.dev/builtins.html#dclint[`dclint` builtin], merged in https://github.com/jdx/hk/pull/779[#779].
+I added it as the https://hk.jdx.dev/builtins.html#dclint[`dclint` builtin] in https://github.com/jdx/hk/pull/779[#779] pass:[<span class="pr-status merged">Merged</span>].
 
 ### Better docs for the mise setup
 
 Using mise to bootstrap hk is one of the most underrated features of the ecosystem, but the docs didn't highlight this pattern.
 I had a quick discussion with https://jdx.dev/[Jeff Dickey] about the different approaches, and we agreed on a https://github.com/jdx/hk/discussions/754[recommended setup].
-I added it to hk's https://hk.jdx.dev/mise_integration.html[mise integration docs] in https://github.com/jdx/hk/pull/780[#780].
+I added it to hk's https://hk.jdx.dev/mise_integration.html[mise integration docs] in https://github.com/jdx/hk/pull/780[#780] pass:[<span class="pr-status merged">Merged</span>].
 
 [WARNING]
 ====
@@ -179,8 +179,8 @@ If you wanted to be safe you ended up doing this:
 ```
 
 which gave me the _ick_. 
-Giving `exclude` an empty list as its default in `pkl/Config.pkl` means it's never null, so you can always append to it, and the first snippet just works.
-Merged in https://github.com/jdx/hk/pull/781[#781].
+So in https://github.com/jdx/hk/pull/781[#781] pass:[<span class="pr-status merged">Merged</span>] I gave `exclude` an empty list as its default in `pkl/Config.pkl`.
+That means it's never null, you can always append to it, and the first snippet just works.
 
 #### Steps that need configuration
 
@@ -205,7 +205,7 @@ step_condition = "exec('if [ -n \"$LICENSE_FILE\" ] && [ -f \"$LICENSE_FILE\" ];
 
 It worked, but it didn't feel like what `step_condition` was intended for.
 
-So in https://github.com/jdx/hk/pull/785[#785] I added a https://hk.jdx.dev/configuration.html#step-required-list-string[`required`] field.
+So in https://github.com/jdx/hk/pull/785[#785] pass:[<span class="pr-status merged">Merged</span>] I added a https://hk.jdx.dev/configuration.html#step-required-list-string[`required`] field.
 A step can now declare the environment variables it needs, and use them in its commands:
 
 ```pkl
@@ -223,7 +223,7 @@ Now that that `required` field is available I should probably submit a PR to add
 ### The one that didn't land
 
 The https://hk.jdx.dev/cli/util/trailing-whitespace.html[trailing_whitespace] builtin also strips trailing whitespace from Markdown files.
-I didn't think that was a good default, because trailing whitespace has semantic meaning in Markdown, so I opened https://github.com/jdx/hk/pull/778[#778] to exclude `.md` files.
+I didn't think that was a good default, because trailing whitespace has semantic meaning in Markdown, so I opened https://github.com/jdx/hk/pull/778[#778] pass:[<span class="pr-status closed">Closed</span>] to exclude `.md` files.
 
 jdx's reply, in full: "I disagree".
 
