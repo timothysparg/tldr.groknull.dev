@@ -11,6 +11,10 @@ import { parse, stringify } from "yaml";
 const FILE = "antora-playbook.yml";
 const REPO = "timothysparg/tldr-ui";
 const TARGET_ASSETS = ["antora-tldr-ui.js", "asciidoc-tldr-ui.js"];
+// Antora downloads ui-bundle.zip itself; this stamp records which bundle is current
+// so the mise build task (which lists it in `sources`) reruns when the bundle changes.
+const BUNDLE_ASSET = "ui-bundle.zip";
+const BUNDLE_STAMP = ".ui-bundle.stamp";
 
 async function getLatestTag() {
   const response = await fetch(`https://github.com/${REPO}/releases/latest`, {
@@ -57,6 +61,14 @@ function needsDownload(asset: { name: string; digest: string | null }) {
   if (!fs.existsSync(asset.name)) return true;
   if (!asset.digest) return true;
   return sha256File(asset.name) !== asset.digest;
+}
+
+function bundleStamp(bundle: { digest: string | null; updated_at: string } | undefined) {
+  return bundle ? `${bundle.digest ?? bundle.updated_at}\n` : null;
+}
+
+function bundleNeedsStamp(stamp: string | null) {
+  return stamp !== null && (!fs.existsSync(BUNDLE_STAMP) || fs.readFileSync(BUNDLE_STAMP, "utf8") !== stamp);
 }
 
 function extractTagFromUrl(url: string): string {
@@ -122,7 +134,9 @@ async function main() {
     }))
     .filter((a: any) => TARGET_ASSETS.includes(a.name));
 
-  const hasAssetChanges = assetsToDownload.some((asset: any) => needsDownload(asset));
+  const stamp = bundleStamp(releaseData.assets.find((a: any) => a.name === BUNDLE_ASSET));
+  const bundleChanged = bundleNeedsStamp(stamp);
+  const hasAssetChanges = bundleChanged || assetsToDownload.some((asset: any) => needsDownload(asset));
 
   if (releaseData.body && hasAssetChanges) {
     console.log("\n--- Release Notes ---");
@@ -142,6 +156,14 @@ async function main() {
       }
       await downloadAsset(asset.url, asset.name);
     }
+  }
+  if (stamp === null) {
+    console.log(`  ! ${BUNDLE_ASSET} not found in this release`);
+  } else if (bundleChanged) {
+    fs.writeFileSync(BUNDLE_STAMP, stamp);
+    console.log(`  ✓ ${BUNDLE_ASSET} changed, next build will fetch it`);
+  } else {
+    console.log(`  = ${BUNDLE_ASSET} unchanged`);
   }
 
   console.log("\nUI Resources Synchronized successfully.");

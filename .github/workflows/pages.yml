@@ -32,10 +32,10 @@ jobs:
         run: npm ci
 
       - name: Resync UI bundle
-        run: mise ui
+        run: mise run sync-ui
 
       - name: Build site
-        run: npm run build
+        run: mise run build
 
       - name: Setup Pages
         uses: actions/configure-pages@v6

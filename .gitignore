@@ -5,6 +5,7 @@ node_modules/
 public/
 antora-tldr-ui.js
 asciidoc-tldr-ui.js
+.ui-bundle.stamp
 build/
 .recordings/
 

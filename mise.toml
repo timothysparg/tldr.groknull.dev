@@ -13,23 +13,41 @@ ASSETS_DIR = "{{config_root}}/modules/ROOT/assets"
 
 [tools]
 node = "lts"
-"npm:antora" = "latest"
 "npm:live-server" = "latest"
 watchexec = "latest"
 
 [tasks.build]
-run = "antora --fetch antora-playbook.yml"
-sources = ["antora-playbook.yml", "antora.yml", "posts-extension.js", "modules/**/*"]
+description = "Build the site into public/, failing on Antora warnings"
+# --fetch refreshes the snapshot UI bundle; .ui-bundle.stamp and the extension files
+# change when sync-ui pulls a new UI release, so a UI-only update still rebuilds
+# npx --no-install runs the Antora pinned in package-lock.json, never a global install
+run = "npx --no-install antora --fetch --log-failure-level=warn antora-playbook.yml"
+sources = [
+  "antora-playbook.yml",
+  "antora.yml",
+  "posts-extension.js",
+  "antora-tldr-ui.js",
+  "asciidoc-tldr-ui.js",
+  ".ui-bundle.stamp",
+  "modules/**/*",
+]
 outputs = ["public/**"]
 
+[tasks.clean]
+description = "Remove the built site so the next build starts fresh"
+run = "rm -rf public"
+
 [tasks.serve]
+description = "Serve public/ on port 5959 with live reload"
 run = "live-server public --port=5959 --no-browser"
 
 [tasks.watch-build]
+description = "Rebuild the site whenever its sources change"
 run = "mise watch build"
 
 [tasks.dev]
-description = "Watch for changes, rebuild, and serve the site"
+description = "Sync the UI, then watch for changes, rebuild, and serve the site"
+depends = ["sync-ui"]
 run = [
   { tasks = ["serve", "watch-build"] }
 ]
