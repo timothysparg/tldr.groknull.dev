@@ -1,0 +1,126 @@
+= A perfectly normal interest in EU legislation
+:page-role: article
+:page-description: blah blah
+:page-date: 2025-03-23
+:page-tags: rdf, sparql, spring-ai
+:page-layout: article
+:article-card-image-light: image$eu-legislation-rdf-light.mp4
+:article-card-image-dark: image$eu-legislation-rdf-dark.mp4
+:icons: font
+
+There comes a time in everybodies life when they look at a legislation online and go "Oh wow, I wonder how they organise all of this!" +
+
+__Or is that just me?__ +
+
+image::Abraham-Simpson-hiding.gif[Abe Simpson backing away into a hedge,width=400]
+
+== What's hiding in EU legislation?
+
+Ok, bear with me: have a look at the very snappily named
+https://eur-lex.europa.eu/eli/reg_impl/2015/1998/oj/eng[Commission Implementing Regulation (EU) 2015/1998 of 5 November 2015 laying down detailed measures for the implementation of the common basic standards on aviation security]
+and tell me it doesn't strike you as exceptionally structured.
+
+When you look at the page source, it gets even more interesting. You see things like this in the HTML `<head>`
+
+```xml
+<meta about="http://data.europa.eu/eli/reg_impl/2015/1998/oj"
+      property="eli:uri_schema"
+      resource="http://data.europa.eu/eli/%7Btypedoc%7D/%7Byear%7D/%7Bnatural_number%7D/oj"/>
+<meta about="http://data.europa.eu/eli/reg_impl/2015/1998/oj" property="eli:id_local"
+      content="32015R1998"
+      lang=""/>
+<meta about="http://data.europa.eu/eli/reg_impl/2015/1998/oj"
+      property="eli:type_document"
+      resource="http://publications.europa.eu/resource/authority/resource-type/REG_IMPL"/>
+<meta about="http://data.europa.eu/eli/reg_impl/2015/1998/oj"
+      property="eli:passed_by"
+      resource="http://publications.europa.eu/resource/authority/corporate-body/COM"/>
+<meta about="http://data.europa.eu/eli/reg_impl/2015/1998/oj" property="eli:is_about"
+      resource="http://eurovoc.europa.eu/5234"/>
+      
+```
+Initially I glossed over this as I had no idea what I was looking at. I later found out that this is https://en.wikipedia.org/wiki/RDFa[RDFa], a way of embedding https://en.wikipedia.org/wiki/Resource_Description_Framework[RDF] (Resource Description Framework) data in HTML.
+
+RDF seems to live in a different corner of computing: public data, standards, and the semantic web. I've spent most of my career building business applications, where SQL is the default, document databases are for the cool kids, and graph databases exist somewhere off to the side.
+
+I've spent too long around relational databases, so I can't stop trying to translate it all into tables. Is a node a table? A row? A schema? An edge is a relationship, right? But then it can have properties, which sounds suspiciously like a join table that has been promoted.
+
+At that point, I start looking for the foreign keys and the SQL Relational police come to take me away. 
+
+image::nosql-joke.png[NoSQL joke,width=360,attribution=https://www.reddit.com/r/ProgrammerHumor/comments/cppihr/no_nosql_developers_in_a_bar/]
+
+
+RDF sits at the intersection of two things I struggle with: graph databases and English grammar. I've never really understood the rules of English grammar, but I've read enough to know what feels right. Please don't ask me why. I only learned that https://www.grammarly.com/blog/parts-of-speech/adjective-order/[adjective order] was even a thing when someone learning English asked me about it.
+
+It's like asking your mother for her lasagne recipe. She'll say, "Oh, I just throw in a bit of this and a bit of that, you know?" Try to pin her down on the exact measurements and you'll get a shrug.
+
+I guess I'm coming over for dinner on Sunday.
+
+[quote.excerpt, 'https://en.wikipedia.org/wiki/Semantic_triple[Wikipedia: Semantic triple]']
+____
+A semantic triple, or RDF triple or simply triple, is the atomic data entity in the Resource Description Framework (RDF) data model.
+As its name indicates, a triple is a sequence of three entities that codifies a statement about semantic data in the form of subject–predicate–object expressions (e.g., "Bob is 35", or "Bob knows John").
+____
+
+To be fair, that example is pretty clear!
+
+And this is where things get interesting. Metadata about EU legislation is published as RDF, and you can query it at https://data.europa.eu/data/sparql[data.europa.eu's SPARQL endpoint]. Off you go, have fun!
+
+image::slow-smile.gif[No, really—take your time!,width=400]
+
+Back already?
+
+Ah, right: https://en.wikipedia.org/wiki/SPARQL[SPARQL]. Me neither.
+
+SPARQL doesn't have the same vast reservoir of examples, explanations, and battle-scarred Stack Overflow answers as SQL. AI assistants inherit that imbalance: their usefulness is shaped by the code, documentation, blog posts, and accumulated correction history available for them to learn from.
+
+SQL has all of that in industrial quantities. SPARQL has rather less, so its suggestions are more likely to be plausible than right.
+
+== SPARQL, meet my LLM
+
+Initially I was going between Claude and https://data.europa.eu/data/sparql trying copy SPARQL queries in one direction and errors in the other.
+It didn't take long to realise that wasn't a particularly efficient workflow. So I partook in my favourite hobby and nerd-sniped myself into building a https://github.com/kludgeworks/mcp-server-rdf[SPARQL MCP server] .
+
+== One small tool call
+
+https://spring.io/projects/spring-ai[Spring AI] makes exposing a service as simple as annotating a method with https://docs.spring.io/spring-ai/reference/api/tools.html#quick-start[`@Tool`] . 
+
+
+```java
+@Tool(description ="Run a SELECT query against an RDF datastore")
+public String query(String serviceUrl, String query) {
+      return rdfBackendClient.executeQuery(serviceUrl, query);
+}
+```
+
+That should have been enough, but I seem incapable of leaving a perfectly serviceable side project alone.
+
+== Naturally, it became a deployment project
+
+A working MCP server is a deceptively small thing. Leave it alone for five minutes and it starts asking for a cache, a home, and a release pipeline.
+
+=== First, a cache
+
+The first problem was that pointing an LLM at a public SPARQL endpoint felt a little bit like giving a toddler the keys to the pantry. It would quite reasonably try a query, get an error, adjust a colon or two, and try again.
+
+The EU legislation datastore is a public resource, and it didn't feel polite to use it as a disposable scratchpad while an LLM iterated towards a valid SPARQL query.
+
+A cache seemed like the polite thing to add. It ended up being two layers: a fast in-memory cache for the current process, backed by a small SQLite database for everything else. The SQLite cache survives restarts and is shared by separately launched stdio sessions, so one client's exploratory query can save the next client from making the same request.
+
+=== Then, a server
+
+A cache makes the tool a slightly better citizen. It also made me think I should stop treating it like a throwaway script on my laptop.
+
+I had a perfectly good homelab, so the obvious next step was to run it there: in a container, reachable as a Streamable HTTP MCP server. Containerising the application itself didn't require any code changes, although it did acquire a release workflow capable of building and publishing images for both amd64 and arm64.
+
+=== One binary, two transports
+
+Putting the server in my homelab didn't make stdio redundant. HTTP is useful for a long-running service; stdio is what MCP clients use when they manage the server process themselves. I wanted the same jar, container, and native binary to support both, selected at startup with `--transport=stdio|http`.
+
+That was straightforward on the JVM. The complication arrived when I decided I also wanted a native image. Spring's usual auto-configuration chooses beans using conditions such as `@ConditionalOnProperty`, but AOT processing evaluates those conditions while building the native image. By runtime, the choice has already been baked in.
+
+So I couldn't let Spring choose the transport for me. Instead, I made the application create the common MCP setup and defer the stdio-versus-HTTP decision until the server actually starts. One binary, two transports, and no need to maintain two nearly identical applications.
+
+At this point I had acquired a cache, a server, two transports, and a release pipeline in pursuit of answering a few questions about EU legislation.
+
+Only then could I get back to the thing that started this whole adventure: nosing around EU legislation.
