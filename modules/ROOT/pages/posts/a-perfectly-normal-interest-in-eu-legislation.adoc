@@ -1,7 +1,7 @@
 = A perfectly normal interest in EU legislation
 :page-role: article
-:page-description: blah blah
-:page-date: 2025-03-23
+:page-description: From suspiciously tidy EU metadata to a SPARQL MCP server.
+:page-date: 2026-10-23
 :page-tags: rdf, sparql, spring-ai
 :page-layout: article
 :article-card-image-light: image$eu-legislation-rdf-light.mp4
